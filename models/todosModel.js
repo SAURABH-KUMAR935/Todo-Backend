@@ -6,6 +6,11 @@ const todoSchema = new mongoose.Schema({
         required: true,
         trim: true,
         maxlength: 500
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     }
 }, {
     timestamps: true

@@ -2,7 +2,8 @@ const Todo = require('../models/todosModel');
 
 exports.getTodos = async (req, res) => {
     try {
-        const todos = await Todo.find().sort({ createdAt: -1 });
+        // Only fetch todos for the authenticated user
+        const todos = await Todo.find({ user: req.user.id }).sort({ createdAt: -1 });
         res.status(200).json(todos);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch todos' });
@@ -21,7 +22,11 @@ exports.postTodo = async (req, res) => {
             return res.status(400).json({ message: 'Task must be less than 500 characters' });
         }
 
-        const todo = new Todo({ task: task.trim() });
+        // Create todo with authenticated user's ID
+        const todo = new Todo({ 
+            task: task.trim(),
+            user: req.user.id 
+        });
         await todo.save();
         res.status(201).json(todo);
     } catch (err) {
@@ -37,10 +42,14 @@ exports.deleteTodo = async (req, res) => {
             return res.status(400).json({ message: 'Invalid todo ID' });
         }
 
-        const deletedTodo = await Todo.findByIdAndDelete(id);
+        // Only allow deletion of user's own todos
+        const deletedTodo = await Todo.findOneAndDelete({ 
+            _id: id, 
+            user: req.user.id 
+        });
 
         if (!deletedTodo) {
-            return res.status(404).json({ message: 'Todo not found' });
+            return res.status(404).json({ message: 'Todo not found or unauthorized' });
         }
 
         res.status(200).json({ message: 'Todo deleted successfully' });
@@ -66,14 +75,15 @@ exports.updateTodo = async (req, res) => {
             return res.status(400).json({ message: 'Task must be less than 500 characters' });
         }
 
-        const updatedTodo = await Todo.findByIdAndUpdate(
-            id,
+        // Only allow updating of user's own todos
+        const updatedTodo = await Todo.findOneAndUpdate(
+            { _id: id, user: req.user.id },
             { task: task.trim() },
             { new: true, runValidators: true }
         );
 
         if (!updatedTodo) {
-            return res.status(404).json({ message: 'Todo not found' });
+            return res.status(404).json({ message: 'Todo not found or unauthorized' });
         }
 
         res.status(200).json(updatedTodo);

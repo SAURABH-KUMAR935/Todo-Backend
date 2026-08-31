@@ -3,14 +3,16 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todos';
+const isProduction = process.env.NODE_ENV === 'production';
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173', 'http://localhost:3000'];
 
 app.use(cors({
@@ -22,11 +24,13 @@ app.use(cors({
 
 // Session configuration
 app.use(session({
+    store: MongoStore.create({ mongoUrl: MONGODB_URI }),
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Set to true in production with HTTPS
+        secure: isProduction,                 // true in production (HTTPS required), false for local http dev
+        sameSite: isProduction ? 'none' : 'lax', // 'none' needed for cross-site (different Vercel subdomains) in prod
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));

@@ -15,6 +15,16 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173', 'http://localhost:3000'];
 
+const createSessionStore = () => {
+    const mongoStoreFactory = MongoStore.create || MongoStore.default?.create;
+
+    if (!mongoStoreFactory) {
+        throw new Error('connect-mongo does not expose a supported create method');
+    }
+
+    return mongoStoreFactory({ mongoUrl: MONGODB_URI });
+};
+
 app.use(cors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -24,7 +34,7 @@ app.use(cors({
 
 // Session configuration
 app.use(session({
-    store: MongoStore.create({ mongoUrl: MONGODB_URI }),
+    store: createSessionStore(),
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
     resave: false,
     saveUninitialized: false,
